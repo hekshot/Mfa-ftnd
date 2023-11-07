@@ -12,7 +12,10 @@ import 'react-toastify/dist/ReactToastify.css';
 import Userdashboard from './pages/user-routes/Userdashboard';
 import Privateroute from './components/Privateroute';
 import Profileinfo from './pages/user-routes/ProfileInfo';
-
+import Qr from './pages/user-routes/Qr';
+import Signuproute from './components/Signuproute';
+import Signinroute from './components/Signinroute';
+import Verify from './pages/Verify';
 
 function App() {
   return (
@@ -23,10 +26,18 @@ function App() {
       <Route path='/login' element={<Login/>} />
       <Route path='/signup' element={<Signup/>} />
       <Route path='/about' element={<About/>} />
+      <Route path='/verify' element={<Verify/>} />
       
       <Route path='/user' element={<Privateroute/>}>
           <Route path='dashboard' element={<Userdashboard/>} />
           <Route path='profile-info' element={<Profileinfo/>} />
+          <Route path='qrscan' element={<Qr/>} />
+      </Route>
+      <Route path='/signup' element={<Signuproute/>}>
+          <Route path='qrscan' element={<Qr/>} />
+      </Route>
+      <Route path='/signin' element={<Signinroute/>}>
+          <Route path='verify' element={<Verify/>}/>
       </Route>
     </Routes>
     </BrowserRouter>
