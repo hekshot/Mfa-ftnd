@@ -22,6 +22,8 @@ function CustomNavbar(args) {
   let navigate = useNavigate()
   const [isOpen, setIsOpen] = useState(false);
 
+  const email = localStorage.getItem('email');
+
   const [login,setLogin] = useState(false)
   const [user,setUser] = useState(undefined)
 
@@ -76,7 +78,7 @@ function CustomNavbar(args) {
             </NavItem>
             <NavItem>
               <NavLink tag={ReactLink} to="/user/dashboard">
-                {user.email}
+                {email}
               </NavLink>
             </NavItem>
             <NavItem>

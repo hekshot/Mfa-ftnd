@@ -4,7 +4,9 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import About from './pages/About';
+//import axios from 'axios';
 
+//axios.defaults.baseURL = 'http://skillbucks.com/api';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

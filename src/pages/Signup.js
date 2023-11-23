@@ -1,301 +1,169 @@
-import {signUp} from "../services/user-service"
-import { Card, CardBody, CardHeader, Container, Form, FormGroup, Input, Label, Button, Row, Col, FormFeedback } from "reactstrap";
+import {
+  Card,
+  CardBody,
+  CardHeader,
+  Container,
+  Form,
+  FormGroup,
+  Input,
+  Label,
+  Button,
+  Row,
+  Col,
+} from "reactstrap";
+import axios from "axios";
 import Base from "../components/Base";
-import { useState } from "react";
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
+import React, { useRef, useState } from "react";
+import { NavLink, NavLink as ReactLink,useNavigate } from "react-router-dom";
+import { doMfa} from "../auth";
 
 const Signup = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const mfaEnableRef = useRef(null);
+  const navigate = useNavigate();
 
-    const [data,setData] = useState({
+  const signUpToAccount = async (event) => {
+    event.preventDefault();
 
-        name:'',
-        email:'',
-        password:'',
-        about:'',
-
-    })
-
-    const [error,setError] = useState({
-        errors:{},
-        isError:false
-    })
-
-
-    const handleChange=(event,property)=>{
-        setData({...data,[property]:event.target.value})
+    // Validate input fields
+    if (!firstName || !lastName || !email || !password) {
+      toast.error("Fill up all the fields");
+      return;
     }
 
-    const resetData=()=>{
-        setData({
-            name:'',
-            email:'',
-            password:'',
-            about:'',
-        })
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      toast.error("Email format is wrong");
+      return;
     }
 
-    const submitForm=(event)=>{
-        event.preventDefault()
+    if (password.length < 6) {
+      toast.error("Password must be of 6 characters");
+      return;
+    }
 
-        if(error.isError){
-            toast.error("user registration failed");
-            return;
+    try {
+      const response = await axios.post(
+        "http://localhost:8080/api/v1/auth/register",
+        {
+          email: email,
+          password: password,
+          firstname: firstName,
+          lastname: lastName,
+          role: "ADMIN",
+          mfaEnabled: mfaEnableRef.current.checked,
         }
-        //data validation
+      );
 
-        //call server api for sending data
-        signUp(data).then((resp)=>{
-            console.log(resp)
-            console.log("success log")
-            toast.success("user registerd successfuly !!")
-            setData({
-                name:'',
-                email:'',
-                password:'',
-                about:'',
-            })
-        }).catch((error)=>{
-            console.log(error)
-            console.log("error log")
-            
-             //handle error
-            setError({
-                errors:error,
-                isError:true
-            })
-        })
-        ;
-    };
+      if (mfaEnableRef.current.checked) {
+        console.log("Response from registration: ", response.data);
+      }
 
-    return (
-       <Base>
+      if (response.status === 200) {
+        if (mfaEnableRef.current.checked) {
+          doMfa(response.data.accessToken, () => {
+            // Redirect to qrscan page
+            navigate("/signup/qrscan", {
+              state: {
+                secretImageUri: response.data.secretImageUri,
+                email: email,
+              },
+            });
+          });
+        } 
+      }else if (response.status === 202){
         
-        <Container>
+        toast.success("Signup success")
+        
+        navigate('/login')
+      }
+    } catch (error) {
+      // Handle any API request errors
+      console.error("Error during registration:", error);
+      toast.error("Email Already exists!")
+    }
+  };
 
+  return (
+    <Base>
+      <Container>
         <Row className="mt-4">
-            <Col sm={{size:6,offset:3}}>
+          <Col sm={{ size: 5, offset: 3 }}>
             <Card color="dark" inverse>
-                <CardHeader>
-                    <h3>Register here!!</h3>
-                </CardHeader>
-                <CardBody>
-
-                    <Form onSubmit={submitForm}>
-                        <FormGroup>
-                            <Label for="name"> Enter your name</Label>
-                            <Input 
-                                type="text" 
-                                placeholder="Enter Name" 
-                                id="name" 
-                                onChange={(e) => handleChange(e,'name')} 
-                                value={data.name} 
-                                invalid={error.errors?.response?.data?.name ? true: false}
-                            />
-                            <FormFeedback>
-                               {error.errors?.response?.data?.name}
-                            </FormFeedback>
-                        </FormGroup>
-                        <FormGroup>
-                            <Label for="email"> Enter your email</Label>
-                            <Input type="text" placeholder="Enter email" id="email" onChange={(e) => handleChange(e,'email')} value={data.email} />
-                        </FormGroup>
-                        <FormGroup>
-                            <Label for="password"> Enter your password</Label>
-                            <Input type="password" placeholder="Enter password" id="password" onChange={(e) => handleChange(e,'password')} value={data.password} />
-                        </FormGroup>
-                        <FormGroup>
-                            <Label for="about"> Enter About</Label>
-                            <Input type="text-area" placeholder="Enter About" id="about" onChange={(e) => handleChange(e,'about')} value={data.about} />
-                        </FormGroup>
-                        <Container className="text-center">
-                            <Button outline color="light">Register</Button>
-                            <Button onClick={resetData} color="secondary" type="reset" className="ms-2">Reset</Button>
-                        </Container>
-            
-                    </Form>
-
-                </CardBody>
-
+              <CardHeader>
+                <h3>Register here!!</h3>
+              </CardHeader>
+              <CardBody>
+                <Form>
+                  <FormGroup>
+                    <Label for="email"> Enter your FirstName</Label>
+                    <Input
+                      type="text"
+                      placeholder="Enter firstName"
+                      id="fname"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                    />
+                  </FormGroup>
+                  <FormGroup>
+                    <Label for="email"> Enter your LastName</Label>
+                    <Input
+                      type="text"
+                      placeholder="Enter lastName"
+                      id="lname"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                    />
+                  </FormGroup>
+                  <FormGroup>
+                    <Label for="email"> Enter your email</Label>
+                    <Input
+                      type="text"
+                      placeholder="Enter email"
+                      id="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </FormGroup>
+                  <FormGroup>
+                    <Label for="password"> Enter your password</Label>
+                    <Input
+                      type="password"
+                      placeholder="Enter password"
+                      id="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </FormGroup>
+                  <FormGroup>
+                    <Label for="checkbox">Enable MFA? </Label>
+                    <Input
+                      innerRef={mfaEnableRef}
+                      type="checkbox"
+                      className="checkbox checkbox-primary"
+                    />
+                  </FormGroup>
+                  <Container className="text-center">
+                    <Button outline color="light" onClick={signUpToAccount}>
+                      SignUp
+                    </Button>
+                  </Container>
+                  <p className="mt-3 text-center">
+                    Already have an account? <NavLink tag={ReactLink} to="/login">
+                        Log In
+                      </NavLink>
+                  </p>
+                </Form>
+              </CardBody>
             </Card>
-
-            </Col>
-
+          </Col>
         </Row>
-
-        </Container>
-
-       </Base>
-    );
+      </Container>
+    </Base>
+  );
 };
 
 export default Signup;
-
-
-
-
-// import { signUp } from "../services/user-service";
-// import { Card, CardBody, CardHeader, Container, Form, FormGroup, Input, Label, Button, Row, Col, FormFeedback } from "reactstrap";
-// import Base from "../components/Base";
-// import { useState } from "react";
-// import { toast } from 'react-toastify';
-
-// const Signup = () => {
-//     const [data, setData] = useState({
-//         name: '',
-//         email: '',
-//         password: '',
-//         about: '',
-//     });
-
-//     const [errors, setErrors] = useState({
-//         name: '',
-//         email: '',
-//         password: '',
-//         about: '',
-//     });
-
-//     const handleChange = (event, property) => {
-//         setData({ ...data, [property]: event.target.value });
-//         // Clear the error for the current field as soon as the user starts typing
-//         const newErrors = { ...errors };
-//         newErrors[property] = '';
-//         setErrors(newErrors);
-//     }
-
-//     const resetData = () => {
-//         setData({
-//             name: '',
-//             email: '',
-//             password: '',
-//             about: '',
-//         });
-//         setErrors({
-//             name: '',
-//             email: '',
-//             password: '',
-//             about: '',
-//         });
-//     }
-
-//     const submitForm = (event) => {
-//         event.preventDefault();
-
-//         let formIsValid = true;
-//         const newErrors = { ...errors };
-
-//         if (!data.name) {
-//             formIsValid = false;
-//             newErrors.name = 'Name is required';
-//         }
-
-//         if (!data.email) {
-//             formIsValid = false;
-//             newErrors.email = 'Email is required';
-//         }
-
-//         if (!data.password) {
-//             formIsValid = false;
-//             newErrors.password = 'Password is required';
-//         }
-
-//         if (!data.about) {
-//             formIsValid = false;
-//             newErrors.about = 'About is required';
-//         }
-
-//         setErrors(newErrors);
-
-//         if (!formIsValid) {
-//             toast.error("User registration failed");
-//             return;
-//         }
-
-//         signUp(data)
-//             .then((resp) => {
-//                 console.log(resp);
-//                 console.log("success log");
-//                 toast.success("User registered successfully!!");
-//                 resetData();
-//             })
-//             .catch((error) => {
-//                 console.log(error);
-//                 console.log("error log");
-//                 toast.error("User registration failed");
-//             });
-//     };
-
-//     return (
-//         <Base>
-//             <Container>
-//                 <Row className="mt-4">
-//                     <Col sm={{ size: 6, offset: 3 }}>
-//                         <Card color="dark" inverse>
-//                             <CardHeader>
-//                                 <h3>Register here!!</h3>
-//                             </CardHeader>
-//                             <CardBody>
-//                                 <Form onSubmit={submitForm}>
-//                                     <FormGroup>
-//                                         <Label for="name"> Enter your name</Label>
-//                                         <Input
-//                                             type="text"
-//                                             placeholder="Enter Name"
-//                                             id="name"
-//                                             onChange={(e) => handleChange(e, 'name')}
-//                                             value={data.name}
-//                                             invalid={errors.name ? true : false}
-//                                         />
-//                                         <FormFeedback>{errors.name}</FormFeedback>
-//                                     </FormGroup>
-//                                     <FormGroup>
-//                                         <Label for="email"> Enter your email</Label>
-//                                         <Input
-//                                             type="text"
-//                                             placeholder="Enter email"
-//                                             id="email"
-//                                             onChange={(e) => handleChange(e, 'email')}
-//                                             value={data.email}
-//                                             invalid={errors.email ? true : false}
-//                                         />
-//                                         <FormFeedback>{errors.email}</FormFeedback>
-//                                     </FormGroup>
-//                                     <FormGroup>
-//                                         <Label for="password"> Enter your password</Label>
-//                                         <Input
-//                                             type="password"
-//                                             placeholder="Enter password"
-//                                             id="password"
-//                                             onChange={(e) => handleChange(e, 'password')}
-//                                             value={data.password}
-//                                             invalid={errors.password ? true : false}
-//                                         />
-//                                         <FormFeedback>{errors.password}</FormFeedback>
-//                                     </FormGroup>
-//                                     <FormGroup>
-//                                         <Label for="about"> Enter About</Label>
-//                                         <Input
-//                                             type="text"
-//                                             placeholder="Enter About"
-//                                             id="about"
-//                                             onChange={(e) => handleChange(e, 'about')}
-//                                             value={data.about}
-//                                             invalid={errors.about ? true : false}
-//                                         />
-//                                         <FormFeedback>{errors.about}</FormFeedback>
-//                                     </FormGroup>
-//                                     <Container className="text-center">
-//                                         <Button outline color="light">Register</Button>
-//                                         <Button onClick={resetData} color="secondary" type="reset" className="ms-2">Reset</Button>
-//                                     </Container>
-//                                 </Form>
-//                             </CardBody>
-//                         </Card>
-//                     </Col>
-//                 </Row>
-//             </Container>
-//         </Base>
-//     );
-// };
-
-// export default Signup;
-
